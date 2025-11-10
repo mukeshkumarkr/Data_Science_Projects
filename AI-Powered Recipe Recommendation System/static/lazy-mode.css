@@ -1,0 +1,49 @@
+/* Lazy Mode Light Theme */
+body:not(.dark).lazy {
+  --primary: #7fbfff;
+  --accent: #a0cfff;
+  --card-bg: rgba(220, 235, 255, 0.85);
+  --background-start: #e6f0ff;
+  --background-end: #cce0ff;
+  --tag-bg: #7fbfff;
+  --tag-text-color: #fff;
+
+  color: #005f99;
+  background: linear-gradient(135deg, var(--background-start), var(--background-end)),
+    url('/static/images/zzz-bg-light.svg') no-repeat center bottom;
+  background-size: 200px auto;
+}
+
+/* Lazy Mode Dark Theme */
+body.dark.lazy {
+  --primary: #8cc3ff;
+  --accent: #aad1ff;
+  --card-bg: rgba(30, 30, 60, 0.85);
+  --background-start: #1a1a3d;
+  --background-end: #333366;
+  --tag-bg: #8cc3ff;
+  --tag-text-color: #222222;
+
+  color: #a0cfff;
+  background: linear-gradient(135deg, var(--background-start), var(--background-end)),
+    url('/static/images/zzz-bg-dark.svg') no-repeat center bottom;
+  background-size: 200px auto;
+}
+
+/* Optional Zzz floating animation */
+body.lazy::after {
+  content: "💤💤💤";
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  font-size: 3rem;
+  opacity: 0.15;
+  pointer-events: none;
+  user-select: none;
+  animation: floatZzz 8s ease-in-out infinite;
+}
+
+@keyframes floatZzz {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(12px); }
+}

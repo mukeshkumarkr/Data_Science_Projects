@@ -1,0 +1,50 @@
+/* Spicy Mode Light Theme */
+body:not(.dark).spicy {
+  --primary: #ff4c4c;
+  --accent: #ff7f7f;
+  --card-bg: rgba(255, 200, 200, 0.85);
+  --background-start: #ffe6e6;
+  --background-end: #ffcccc;
+  --tag-bg: #ff4c4c;
+  --tag-text-color: #fff;
+
+  color: #8b0000;
+  background: linear-gradient(135deg, var(--background-start), var(--background-end)),
+    url('/static/images/chili-bg-light.svg') no-repeat center bottom;
+  background-size: 200px auto;
+}
+
+/* Spicy Mode Dark Theme */
+body.dark.spicy {
+  --primary: #ff6f61;
+  --accent: #ff8a80;
+  --card-bg: rgba(34, 34, 34, 0.85);
+  --background-start: #330000;
+  --background-end: #660000;
+  --tag-bg: #ff6f61;
+  --tag-text-color: #222222;
+
+  color: #ff8a80;
+  background: linear-gradient(135deg, var(--background-start), var(--background-end)),
+    url('/static/images/chili-bg-dark.svg') no-repeat center bottom;
+  background-size: 200px auto;
+}
+
+
+/* Optional chili icon floating on right */
+body.spicy::after {
+  content: "🌶️🌶️🌶️";
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  font-size: 3rem;
+  opacity: 0.15;
+  pointer-events: none;
+  user-select: none;
+  animation: floatChili 6s ease-in-out infinite;
+}
+
+@keyframes floatChili {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
