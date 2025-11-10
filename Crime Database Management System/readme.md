@@ -1,0 +1,1 @@
+Developed a web-based system using Flask and MySQL to efficiently manage criminal investigation data. Designed a secure relational database schema for cases, officers, and crime scenes, and built an intuitive interface for advanced search and CRUD operations — improving data accessibility and security for law enforcement use.
