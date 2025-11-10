@@ -1,0 +1,1 @@
+Performed sentiment classification on over 14,000 airline tweets using machine learning models including Naïve Bayes, Random Forest, SVM, and Logistic Regression. Visualized sentiment trends across airlines and time of day, achieving 75.2% accuracy through k-fold cross-validation.
