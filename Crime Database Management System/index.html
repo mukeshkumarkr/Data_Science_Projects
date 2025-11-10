@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crime Management System</title>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <style>
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: url('/static/images/background.jpg');
+            background-size: cover; 
+            background-position: center; 
+            background-attachment: fixed;
+        }
+        #title {
+            font-family: 'American Typewriter', serif; 
+            font-size: 50px; 
+            color: #333; 
+            text-align: center; 
+            margin-top: 20px; 
+        }
+        #nextButton {
+            padding: 10px 20px; 
+            font-size: 18px; 
+            background-color: #313932; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            display: block; 
+            width: 200px; 
+            margin: 20px auto; 
+        }
+
+        #nextButton:hover {
+            background-color: #9ea8b9;
+        }
+
+        #inputFields input {
+            padding: 8px 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        #inputFields input[type="date"] {
+            cursor: pointer; 
+        }
+
+        #inputFields label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block; 
+        }
+
+        #inputFields select {
+            padding: 8px 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; 
+            height: 100vh;
+        }
+        .sidebar {
+            width: 20%; 
+            background-color: #f2f2f2; 
+            padding: 100px; 
+            display: none; 
+            flex-direction: column; 
+        }
+        .sidebar button {
+            padding: 10px 20px; 
+            margin: 10px 0; 
+            background-color: #212324; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            width: 100%; 
+            cursor: pointer; 
+        }
+
+        
+        .sidebar button:hover {
+            background-color: #0056b3; 
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+        .table-buttons {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+        .table-buttons button {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .button {
+            padding: 10px 20px; 
+            font-size: 16px; 
+            background-color: #007BFF; 
+            color: white; 
+            border: none; 
+            border-radius: 5px;
+            cursor: pointer; 
+            display: inline-block;
+            margin: 5px; 
+            text-align: center; 
+        }
+        .input-style {
+            padding: 8px 12px; 
+            font-size: 16px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            width: 100%; 
+            box-sizing: border-box; 
+            margin-bottom: 10px; 
+        }
+        .button-search {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff; 
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: block; 
+            width: 100%; 
+            margin-top: 5px; 
+        }
+        
+
+        .button-search:hover {
+            background-color: #0056b3; 
+        }
+
+        .input-style:focus {
+            border-color: #0056b3; 
+            outline: none; 
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); 
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+        #searchResults {
+            margin-top: 40px; 
+        }
+        #addDataSection, #deleteDataSection, #updateDataSection { 
+            display: none;
+            margin-top: 20px;
+        }
+        #addDataSection h2, #deleteDataSection h2 , #updateDataSection h2{ 
+            margin-bottom: 10px;
+        }
+        #inputFields label, #deleteDataForm label, #updateDataForm label { 
+            display: block;
+            margin-bottom: 5px;
+        }
+        #inputFields input, #deleteDataForm input , #updateDataForm input{ 
+            margin-bottom: 10px;
+        }
+        #searchResults table {
+            background-color: white; 
+            width: 100%; 
+            border-collapse: collapse; 
+        }
+
+        #searchResults th, #searchResults td {
+            border: 1px solid #ddd; 
+            padding: 8px;
+            text-align: left; 
+        }
+
+        
+        #searchResults tr:nth-child(even) {
+            background-color: #f2f2f2; 
+        }
+        #updateFields table {
+            background-color: white; 
+            width: 100%; 
+            border-collapse: collapse; 
+        }
+
+        #updateFields th, #updateFields td {
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: left; 
+        }
+
+        
+        #updateFields tr:nth-child(even) {
+            background-color: #f2f2f2; 
+        }
+
+
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar" id="sidebar">
+        </div>
+        <div class="main-content">
+            <h1 id="title">WELCOME TO CRIME DATABASE MANAGEMENT SYSTEM</h1>
+            <button onclick="showTables()" id="nextButton">Next</button>
+            <div id="searchSection" style="display: none;">
+                <div id="searchInfo"></div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search..." class="input-style">
+                <select id="attributeDropdown" class="input-style">
+                </select>
+                <button onclick="searchData()" class="button">Search</button>
+                <button onclick="showAddData()" class="button">Add</button>
+                <button onclick="showDeleteData()" class="button">Delete</button> 
+                <button onclick="showUpdateData()" class="button">Update</button>
+            </div>
+            <div id="searchResults"></div>
+            <div id="addDataSection">
+                <h2>Add Data to Table</h2>
+                <form id="addDataForm" >
+                    <input type="hidden" id="tableNameInput" name="table_name">
+                    <div id="inputFields"></div >
+                    <button type="button" onclick="addData()" class="button">Add</button>
+                    <button type="button" onclick="cancelAdd()" class="button">Cancel</button>
+                </form>
+            </div>
+            <div id="deleteDataSection">
+                <h2>Delete Data from Table: </h2>
+                <form id="deleteDataForm">
+                    <input type="hidden" id="deleteTableNameInput" name="table_name">
+                    <label for="deleteKeyInput">Enter Primary Key Value to Delete:</label>
+                    <input type="text" id="deleteKeyInput" name="primary_key" class="input-style">
+                    <button type="button" onclick="deleteData()" class="button">Delete</button>
+                    <button type="button" onclick="cancelDelete()" class="button">Cancel</button>
+                </form>
+            </div>
+            <div id="updateDataSection" style="display: none;">
+                <h2>Update Data in Table:</h2>
+                <form id="updateDataForm">
+                    <input type="hidden" id="updateTableNameInput" name="table_name">
+                    <label for="updateKeyInput">Enter Primary Key Value to Update:</label>
+                    <input type="text" id="updateKeyInput" name="primary_key" class="input-style">
+                    <button type="button" onclick="checkRecordExists()" class="button">Enter</button>
+                    <button type="button" onclick="cancelUpdate()" class="button">Cancel</button>
+                </form>
+                <div id="updateFields"></div>
+                <select id="columnDropdown" class="input-style">
+                </select>
+                <div id="newValueInputContainer">
+                    <input type="text" id="newValueInput" style="display: none;" class="input-style">
+                    <input type="text" id="datepicker" style="display: none;" class="input-style">
+                </div>
+                <button type="button" id="updateButton" style="display: none;" onclick="updateData()" class="button">Update</button>                
+            </div>            
+        </div>
+    </div>
+    <script>
+        const tables = {{ tables | tojson }};
+        let nextButtonClicked = false;
+
+        function showTables() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.style.display = 'flex';
+            hideSearchAndAdd(); 
+            if (!nextButtonClicked) {
+                nextButtonClicked = true;
+                document.getElementById('nextButton').style.display = 'none';
+                document.getElementById('title').textContent = 'CRIME DATABASE MANAGEMENT SYSTEM';
+
+                const sidebar = document.getElementById('sidebar');
+                tables.forEach((table, index) => {
+                    setTimeout(() => {
+                        const button = document.createElement('button');
+                        button.textContent = table;
+                        button.onclick = () => loadTable(table);
+                        sidebar.appendChild(button);
+                        sidebar.appendChild(document.createElement('br')); 
+                    }, index * 100);
+                });
+            }
+        }
+        function showDeleteData() {
+            hideSearchAndAdd(); 
+            document.getElementById('deleteDataSection').style.display = 'block';
+            const tableName = document.getElementById('searchInfo').textContent.split(':')[1].trim();
+            const tablePrimaryKeys = {
+                'Officer': 'Officer_ID',
+                'Case_File': 'File_ID',
+                'Crime_Scene': 'Scene_ID',
+                'Victim': 'Victim_SSN',
+                'Witness': 'Witness_SSN',
+                'Suspect': 'Suspect_SSN',
+                'Evidence': 'Evidence_ID',
+                'Forensic_Report': 'Report_ID',
+                'Family': 'Relative_ID'
+            };
+            const primaryKeyName = tablePrimaryKeys[tableName];
+            document.getElementById('deleteTableNameInput').value = tableName;
+            document.querySelector('#deleteDataSection h2').textContent = `Delete Data from ${tableName}`;
+            document.querySelector('#deleteDataForm label[for="deleteKeyInput"]').textContent = `Enter ${primaryKeyName} to Delete:`;
+
+        }
+
+        function deleteData() {
+            const form = document.getElementById('deleteDataForm');
+            fetch('/delete_data', {
+                method: 'POST',
+                body: new FormData(form)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                form.reset();
+                document.getElementById('deleteDataSection').style.display = 'none';
+                document.getElementById('searchSection').style.display = 'block'; 
+            });
+        }
+
+        
+        function cancelDelete() {
+            document.getElementById('deleteDataSection').style.display = 'none';
+            document.getElementById('searchSection').style.display = 'block'; 
+        }
+
+        
+        function loadTable(tableName) {
+            clearSearchInput()
+            hideSearchAndAdd(); 
+            document.getElementById('deleteDataSection').style.display = 'none'; 
+            document.getElementById('searchSection').style.display = 'block'; 
+            document.getElementById('searchInfo').textContent = `Searching in table: ${tableName}`;
+            fetch(`/get_attributes/${tableName}`)
+                .then(response => response.json())
+                .then(data => {
+                    const attributeDropdown = document.getElementById('attributeDropdown');
+                    attributeDropdown.innerHTML = '';
+                    data.forEach(attribute => {
+                        const option = document.createElement('option');
+                        option.textContent = attribute;
+                        attributeDropdown.appendChild(option);
+                    });
+                });
+        }
+
+        
+        function showAddData() {
+            hideSearchAndAdd(); 
+            document.getElementById('addDataSection').style.display = 'block';
+            const tableName = document.getElementById('searchInfo').textContent.split(':')[1].trim();
+            document.getElementById('tableNameInput').value = tableName;
+            fetch(`/get_attributes/${tableName}`)
+                .then(response => response.json())
+                .then(data => {
+                    const inputFields = document.getElementById('inputFields');
+                    inputFields.innerHTML = '';
+                    data.forEach(attribute => {
+                        const label = document.createElement('label');
+                        label.textContent = attribute;
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.name = attribute;
+                        if (attribute.toLowerCase().includes('date')) { 
+                            input.type = 'date'; 
+                        } else {
+                            input.type = 'text';
+                        }
+                        inputFields.appendChild(label);
+                        inputFields.appendChild(input);
+                    });
+                });
+            document.querySelector('#addDataSection h2').textContent = `Add Data to ${tableName}`;
+
+        }
+
+        function addData() {
+            const form = document.getElementById('addDataForm');
+            fetch('/add_data', {
+                method: 'POST',
+                body: new FormData(form)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                form.reset();
+                document.getElementById('addDataSection').style.display = 'none';
+                document.getElementById('searchSection').style.display = 'block'; 
+            });
+        }
+
+        function cancelAdd() {
+            document.getElementById('addDataSection').style.display = 'none';
+            document.getElementById('searchSection').style.display = 'block'; 
+        }
+
+        function formatColumnName(columnName) {
+            return columnName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        }
+        function formatDate(dateString) {
+            if (!dateString) return ''; 
+            const date = new Date(dateString);
+            date.setDate(date.getDate() + 1);
+            const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+            return date.toLocaleDateString('en-US', options);
+        }
+        
+        function setupSearchInput() {
+            const attribute = document.getElementById('attributeDropdown').value;
+            const searchInput = document.getElementById('searchInput');
+
+            if (attribute.toLowerCase().includes('date')) {
+                searchInput.type = 'date';
+                searchInput.value = ''; 
+            } else {
+                searchInput.type = 'text';
+                searchInput.value = ''; 
+                searchInput.setAttribute('placeholder', 'Type your search query');
+            }
+        }
+
+        document.getElementById('attributeDropdown').addEventListener('change', setupSearchInput);
+
+        function searchData() {
+            const tableName = document.getElementById('searchInfo').textContent.split(':')[1].trim();
+            const attribute = document.getElementById('attributeDropdown').value;
+            const searchInput = document.getElementById('searchInput');
+            let searchQuery = searchInput.value;
+
+            if (searchInput.type === 'date') {
+                searchQuery = formatDateToMySQLFormatSearch(searchQuery);
+            }
+
+            fetch('/search', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    table_name: tableName,
+                    attribute: attribute,
+                    search_query: searchQuery
+                }),
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.length === 0) {
+                    alert(`No results found for "${searchQuery}" in the ${attribute} column of the ${tableName} table.`);
+                } else {
+                    const table = `
+                        <table id="searchTable" border="1">
+                            <thead>
+                                <tr>${Object.keys(data[0]).map(key => `<th>${formatColumnName(key)}</th>`).join('')}</tr>
+                            </thead>
+                            <tbody>
+                                ${data.map(row => `<tr>${Object.values(row).map(value => typeof value === 'string' && value.includes('GMT') ? `<td>${formatDate(value)}</td>` : `<td>${value}</td>`).join('')}</tr>`).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    document.getElementById('searchResults').innerHTML = table;
+                }
+            });
+        }
+
+        setupSearchInput();
+
+
+        function clearSearchInput() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchInput').type = 'text';
+        }
+        function showUpdateData() {
+            hideSearchAndAdd(); 
+            document.getElementById('updateDataSection').style.display = 'block';
+            const tablePrimaryKeys = {
+                'Officer': 'Officer_ID',
+                'Case_File': 'File_ID',
+                'Crime_Scene': 'Scene_ID',
+                'Victim': 'Victim_SSN',
+                'Witness': 'Witness_SSN',
+                'Suspect': 'Suspect_SSN',
+                'Evidence': 'Evidence_ID',
+                'Forensic_Report': 'Report_ID',
+                'Family': 'Relative_ID'
+            };
+            const tableName = document.getElementById('searchInfo').textContent.split(':')[1].trim();
+            const primaryKeyName = tablePrimaryKeys[tableName];
+            document.getElementById('updateTableNameInput').value = tableName;
+            document.querySelector('#updateDataSection h2').textContent = `Update Data into ${tableName}`;
+            document.querySelector('#updateDataForm label[for="updateKeyInput"]').textContent = `Enter ${primaryKeyName} to Update:`;
+
+        }
+
+        
+
+        function cancelUpdate() {
+            document.getElementById('updateDataSection').style.display = 'none';
+            document.getElementById('searchSection').style.display = 'block';
+        }
+
+        function checkRecordExists() {
+            const tableName = document.getElementById('updateTableNameInput').value;
+            const primaryKeyValue = document.getElementById('updateKeyInput').value;
+            const tablePrimaryKeys = {
+                'Officer': 'Officer_ID',
+                'Case_File': 'File_ID',
+                'Crime_Scene': 'Scene_ID',
+                'Victim': 'Victim_SSN',
+                'Witness': 'Witness_SSN',
+                'Suspect': 'Suspect_SSN',
+                'Evidence': 'Evidence_ID',
+                'Forensic_Report': 'Report_ID',
+                'Family': 'Relative_ID'
+            };
+            const primary_key_column = tablePrimaryKeys[tableName]
+
+            fetch(`/get_record/${tableName}/${primaryKeyValue}`)
+                .then(response => {
+                    if (!response.ok) { 
+                        throw new Error('Record with ' +  primaryKeyValue + ' ' + primary_key_column + ' record not found in ' + tableName);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.message) {
+                        alert(data.message);
+                        document.getElementById('updateDataSection').style.display = 'none';
+                        document.getElementById('searchSection').style.display = 'block';
+                        return;
+                    }
+                    const table = `
+                        <table border="1">
+                            <thead>
+                                <tr>${Object.keys(data).map(key => `<th>${formatColumnName(key)}</th>`).join('')}</tr>
+                            </thead>
+                            <tbody>
+                                <tr>${Object.values(data).map(value => `<td>${typeof value === 'string' && value.includes('GMT') ? formatDate(value) : value}</td>`).join('')}</tr>
+                            </tbody>
+                        </table>
+                    `;
+                    document.getElementById('updateFields').innerHTML = table;
+                    populateColumnDropdown(data); 
+                    document.getElementById('updateButton').style.display = 'block';
+                    showInputBox(); 
+                })
+                .catch(error => {
+                    alert('An error occurred: ' + error.message);
+                    document.getElementById('updateDataSection').style.display = 'none';
+                    document.getElementById('searchSection').style.display = 'block';
+                });
+        }
+
+        function populateColumnDropdown(data) {
+            const columnDropdown = document.getElementById('columnDropdown');
+            columnDropdown.innerHTML = '';
+            Object.keys(data).forEach(columnName => {
+                const option = document.createElement('option');
+                option.value = columnName;
+                option.textContent = formatColumnName(columnName);
+                columnDropdown.appendChild(option);
+            });
+        }
+
+        function showInputBox() {
+            const inputBox = document.getElementById('newValueInput');
+            const datepicker = $('#datepicker');
+            const columnDropdown = document.getElementById('columnDropdown');
+
+            inputBox.style.display = 'none';
+            datepicker.hide();
+            columnDropdown.style.display = 'block'; 
+
+            const selectedColumn = document.getElementById('columnDropdown').value;
+            if (selectedColumn.toLowerCase().includes('date')) {
+                datepicker.show();
+                datepicker.datepicker(); 
+            } else {
+                inputBox.style.display = 'block';
+                inputBox.setAttribute('placeholder', `Enter new value for ${selectedColumn}`);
+            }
+        }
+
+        document.getElementById('columnDropdown').addEventListener('change', showInputBox);
+
+
+
+        function formatDateToMySQLFormat(dateString) {
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0'); 
+            const day = String(date.getDate() ).padStart(2, '0'); 
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDateToMySQLFormatSearch(dateString) {
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0'); 
+            const day = String(date.getDate() +1).padStart(2, '0'); 
+            return `${year}-${month}-${day}`;
+        }
+
+        function updateData() {
+            const form = document.getElementById('updateDataForm');
+            const tableName = document.getElementById('updateTableNameInput').value;
+            const primaryKeyValue = document.getElementById('updateKeyInput').value;
+            const columnName = document.getElementById('columnDropdown').value;
+            let newValue;
+            const selectedColumn = document.getElementById('columnDropdown').value;
+            if (selectedColumn.toLowerCase().includes('date')) {
+                newValue = formatDateToMySQLFormat(document.getElementById('datepicker').value);
+            } else {
+                newValue = document.getElementById('newValueInput').value;
+            }
+
+            fetch('/update_record', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    table_name: tableName,
+                    primary_key_value: primaryKeyValue,
+                    column: columnName,
+                    new_value: newValue
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                form.reset();
+                document.getElementById('updateDataSection').style.display = 'none';
+                document.getElementById('searchSection').style.display = 'block'; 
+            });
+        }
+       
+
+        function hideSearchAndAdd() {
+            document.getElementById('searchSection').style.display = 'none';
+            document.getElementById('searchResults').innerHTML = '';
+            document.getElementById('addDataSection').style.display = 'none';
+            document.getElementById('deleteDataSection').style.display = 'none';
+            document.getElementById('updateDataSection').style.display = 'none';
+            document.getElementById('updateFields').innerHTML = '';
+            document.getElementById('updateButton').style.display = 'none';
+            document.getElementById('newValueInput').style.display = 'none';
+            document.getElementById('datepicker').style.display = 'none';
+            document.getElementById('columnDropdown').style.display = 'none';
+        }
+
+    </script>
+</body>
+</html>
+
+
+
