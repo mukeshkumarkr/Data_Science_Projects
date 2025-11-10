@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olympic Navigation</title>
+    <style>
+        /* General styling */
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            background: url('theme.webp') no-repeat center center fixed;
+            background-size: 150% 150%;
+            animation: gradientAnimation 25s ease infinite;
+        }
+
+        /* Title */
+        h1 {
+            margin-bottom: 30px;
+            color: white;
+            font-size: 2.5rem;
+            text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Buttons */
+        button {
+            margin: 10px;
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 50px;
+            background: white;
+            color: #1e90ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        button:hover {
+            color: white;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(120deg, #ff4500, #1e90ff, #32cd32, #ffa500);
+            z-index: -1;
+            transition: all 0.5s ease;
+        }
+
+        button:hover::before {
+            left: 0;
+        }
+
+        /* Animations */
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Olympic Navigation</h1>
+    <button onclick="location.href='filter.html'">Bar Graph</button>
+    <button onclick="location.href='trends.html'">Line Graph</button>
+    <button onclick="location.href='dmy.html'">World Map</button>
+    <button onclick="location.href='zoom.html'">Zoomable Circle Packing</button>
+    
+    
+</body>
+</html>

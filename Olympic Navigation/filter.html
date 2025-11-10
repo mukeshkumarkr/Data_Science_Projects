@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar Graph</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column; /* Arrange elements vertically */
+            min-height: 100vh;
+            margin: 0;
+            background: url('theme.webp') no-repeat center center fixed;
+            background-color: #fdf6e3; /* Light Beige Background */
+        }
+        .filter-group select, button {
+            margin: 5px;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #444;
+            font-family: Arial, sans-serif;
+        }
+        .filter-group select {
+            background-color: #ffffff;
+            color: #000000;
+        }
+        h1 {
+            margin: 20px 0;
+            font-family: Arial, sans-serif;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            text-align: center;
+        }
+
+        button {
+            margin: 10px;
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 50px;
+            background: white;
+            color: #1e90ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        button:hover {
+            color: white;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(120deg, #ff4500, #1e90ff, #32cd32, #ffa500);
+            z-index: -1;
+            transition: all 0.5s ease;
+        }
+
+        button:hover::before {
+            left: 0;
+        }
+        #chart {
+            margin-top: 40px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border: 2px solid #444; /* Border for the bar graph */
+            overflow-x: auto; /* Allow horizontal scrolling */
+            max-width: 100%; /* Prevents overflowing of the parent container */
+            display: none;
+        }
+        .bar {
+            fill: #4682B4; /* Steel Blue color for bars */
+        }
+        .bar:hover {
+            fill: #1E90FF; /* Dodger Blue for hover effect */
+        }
+        .axis text {
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+        }
+        .axis path, .axis line {
+            stroke: #444;
+        }
+        .tooltip {
+            position: absolute;
+            padding: 8px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            border-radius: 4px;
+            pointer-events: none;
+            display: none;
+        }
+        .scroll-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: none;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .scroll-to-top:hover {
+            background-color: #0056b3;
+        }
+        
+    </style>
+</head>
+<body>
+    <h1>Olympic Data Visualization</h1>
+    <div id="filter-container">
+        <div class="filter-group">
+            <div id="filters">
+                <select class="discipline"></select>
+                <select class="event"></select>
+                <select class="eventGender"></select>
+                <select class="medalType"></select>
+                <select class="participantType"></select>
+                <select class="year"></select>
+                <select class="country"></select>
+            </div>
+        </div>
+    </div>
+    <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
+        <button id="addFilterGroupBtn">+</button>
+        <button id="removeFilterGroupBtn">-</button>
+    </div>    
+    <button id="barGraphBtn">Bar Graph</button>
+    <button id="stackedBarGraphBtn">Stacked Bar Graph</button>
+    <button id="resetBtn">Reset</button>
+    <button class="home-button" onclick="location.href='index.html'">Home</button>
+
+    <div id="chart"></div>
+
+    <script>
+    let data;
+    const filterGroups = [];
+
+    d3.csv('olympics_data_with_country_names.csv').then(function(csvData) {
+        data = csvData;
+        initializeFilters();
+    });
+
+    function initializeFilters() {
+    // Clear any existing dropdowns that might be visible initially
+    d3.select("#filter-container").html("");
+    addFilterGroup(); // Add only one filter group dynamically
+}
+
+    function addFilterGroup() {
+        const container = d3.select("#filter-container");
+        const newFilterGroup = container.append("div").attr("class", "filter-group");
+        const filters = {
+            discipline: newFilterGroup.append("select").attr("class", "discipline"),
+            event: newFilterGroup.append("select").attr("class", "event"),
+            eventGender: newFilterGroup.append("select").attr("class", "eventGender"),
+            medalType: newFilterGroup.append("select").attr("class", "medalType"),
+            participantType: newFilterGroup.append("select").attr("class", "participantType"),
+            year: newFilterGroup.append("select").attr("class", "year"),
+            country: newFilterGroup.append("select").attr("class", "country")
+        };
+
+        if (Object.values(filters).some(filter => !filter.node())) {
+            console.error("Failed to initialize dropdowns for filter group.");
+            return;
+        }
+
+        filterGroups.push(filters);
+        populateDropdowns(filters);
+        attachFilterChangeListeners(filters);
+    }
+
+    function populateDropdowns(filters) {
+    Object.keys(filters).forEach(key => {
+        const columnName = {
+            discipline: "Discipline",
+            event: "Event",
+            eventGender: "Event Gender",
+            medalType: "Medal Type",
+            participantType: "Participant Type",
+            year: "Year",
+            country: "Country"
+        }[key];
+
+        const values = [...new Set(data.map(row => {
+            switch (key) {
+                case 'discipline': return row.discipline_title;
+                case 'event': return row.event_title;
+                case 'eventGender': return row.event_gender;
+                case 'medalType': return row.medal_type;
+                case 'participantType': return row.participant_type;
+                case 'year': return row.year;
+                case 'country': return row.map_country_name;
+                default: return '';
+            }
+        }))].sort();
+
+        filters[key]
+            .selectAll("option")
+            .data([columnName, ...values])
+            .join("option")
+            .text(option => option)
+            .attr("value", option => option === columnName ? "" : option);
+    });
+}
+
+
+    function attachFilterChangeListeners(filters) {
+        Object.values(filters).forEach(filter => {
+            filter.on("change", () => updateFilters(filters));
+        });
+    }
+
+    function updateFilters(changedFilterGroup) {
+        const filteredData = filterData(changedFilterGroup);
+        Object.keys(changedFilterGroup).forEach(key => {
+            const values = [...new Set(filteredData.map(row => {
+                switch (key) {
+                    case 'discipline': return row.discipline_title;
+                    case 'event': return row.event_title;
+                    case 'eventGender': return row.event_gender;
+                    case 'medalType': return row.medal_type;
+                    case 'participantType': return row.participant_type;
+                    case 'year': return row.year;
+                    case 'country': return row.map_country_name;
+                    default: return '';
+                }
+            }))].sort();
+
+            const currentValue = changedFilterGroup[key].property("value");
+            changedFilterGroup[key]
+                .selectAll("option")
+                .data(["All", ...values])
+                .join("option")
+                .text(option => option)
+                .attr("value", option => option === "All" ? "" : option)
+                .property("selected", option => option === currentValue || (option === "All" && currentValue === ""));
+        });
+    }
+
+    function filterData(filters) {
+        if (!filters || !filters.discipline) {
+            console.error("Filters object is missing or not initialized properly:", filters);
+            throw new Error("Filters are not properly initialized");
+        }
+
+        return data.filter(d =>
+            (filters.discipline.property("value") === "" || d.discipline_title === filters.discipline.property("value")) &&
+            (filters.event.property("value") === "" || d.event_title === filters.event.property("value")) &&
+            (filters.eventGender.property("value") === "" || d.event_gender === filters.eventGender.property("value")) &&
+            (filters.medalType.property("value") === "" || d.medal_type === filters.medalType.property("value")) &&
+            (filters.participantType.property("value") === "" || d.participant_type === filters.participantType.property("value")) &&
+            (filters.year.property("value") === "" || d.year === filters.year.property("value")) &&
+            (filters.country.property("value") === "" || d.map_country_name === filters.country.property("value"))
+        );
+    }
+    function removeFilterGroup() {
+    if (filterGroups.length > 1) { // Ensure at least one filter group remains
+        const lastGroup = filterGroups.pop(); // Remove the last filter group from the array
+        d3.select("#filter-container .filter-group:last-child").remove(); // Remove the last group from the DOM
+    } else {
+        alert("At least one filter group must remain.");
+    }
+}
+
+    function createGraphs(createGraphFunction) {
+        d3.select('#chart').selectAll('*').remove();
+        filterGroups.forEach((filters, index) => {
+            if (!filters || Object.values(filters).some(filter => !filter.node())) {
+                console.error(`Filter group ${index} is not initialized properly:`, filters);
+                return;
+            }
+
+            const filteredData = filterData(filters);
+            const container = d3.select('#chart').append('div').attr('class', 'graph-container');
+            createGraphFunction(container, filteredData, `Graph ${index + 1}`);
+        });
+    }
+
+    function resetVisualization() {
+        d3.select('#filter-container').html('');
+        d3.select('#chart').html('');
+        d3.select('#chart').style('display', 'none');
+        filterGroups.length = 0;
+        addFilterGroup();
+    }
+
+    function createBarGraph(container, filteredData, title) {
+        if (filteredData.length === 0) {
+        d3.select('#chart').style('display', 'none'); // Hide the chart if no data
+        return;
+    }
+
+    d3.select('#chart').style('display', 'block'); // Show the chart when data is present
+
+    const countryMedalCount = d3.rollup(filteredData, v => v.length, d => d.map_country_name);
+    const sortedData = Array.from(countryMedalCount, ([country, count]) => ({ country, count }))
+        .sort((a, b) => b.count - a.count);
+
+    // Calculate the widest Y-axis label dynamically
+    const maxYValue = d3.max(sortedData, d => d.count);
+    const tempSvg = d3.select("body").append("svg").attr("class", "temp");
+    const tempText = tempSvg.append("text")
+        .attr("font-size", "12px")
+        .text(d3.format("d")(maxYValue));
+    const yAxisLabelWidth = tempText.node().getBBox().width;
+    tempSvg.remove();
+
+    const margin = { top: 20, right: 20, bottom: 50, left: yAxisLabelWidth + 20 }; // Add padding to avoid overlap
+    const containerWidth = Math.max(600, sortedData.length * 40); // Adjust based on data
+    const height = 400 - margin.top - margin.bottom;
+
+    const svg = container.append('svg')
+        .attr('width', containerWidth + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    const x = d3.scaleBand().range([0, containerWidth]).padding(0.1);
+    const y = d3.scaleLinear().range([height, 0]);
+
+    x.domain(sortedData.map(d => d.country));
+    y.domain([0, maxYValue]);
+
+    const tooltip = d3.select("body").append("div").attr("class", "tooltip");
+
+    svg.selectAll('.bar')
+        .data(sortedData)
+        .enter().append('rect')
+        .attr('class', 'bar')
+        .attr('x', d => x(d.country))
+        .attr('width', x.bandwidth())
+        .attr('y', d => y(d.count))
+        .attr('height', d => height - y(d.count))
+        .on("mouseover", function (event, d) {
+            tooltip.style("opacity", 1)
+                .style("display", "block")
+                .html(`Total Medals: ${d.count}`)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mousemove", function (event) {
+            tooltip.style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function () {
+            tooltip.style("opacity", 0)
+                .style("display", "none");
+        });
+
+    svg.append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(x))
+        .selectAll('text')
+        .attr('transform', 'rotate(-45)')
+        .style('text-anchor', 'end');
+
+        const yTicks = Math.min(10, y.domain()[1]); // Maximum of 10 ticks or less based on the data
+    svg.append('g')
+        .call(d3.axisLeft(y).ticks(yTicks).tickFormat(d3.format("d")));
+}
+
+function createStackedBarGraph(container, filteredData, title) {
+    if (filteredData.length === 0) {
+        d3.select('#chart').style('display', 'none'); // Hide the chart if no data
+        return;
+    }
+
+    d3.select('#chart').style('display', 'block'); // Show the chart when data is present
+
+    const countryMedalCount = d3.rollup(filteredData, v => ({
+        GOLD: v.filter(d => d.medal_type === 'GOLD').length,
+        SILVER: v.filter(d => d.medal_type === 'SILVER').length,
+        BRONZE: v.filter(d => d.medal_type === 'BRONZE').length
+    }), d => d.map_country_name);
+
+    const sortedData = Array.from(countryMedalCount, ([country, medals]) => ({
+        country,
+        GOLD: medals.GOLD,
+        SILVER: medals.SILVER,
+        BRONZE: medals.BRONZE
+    })).sort((a, b) => (b.GOLD + b.SILVER + b.BRONZE) - (a.GOLD + a.SILVER + a.BRONZE));
+
+    // Calculate the widest Y-axis label dynamically
+    const maxYValue = d3.max(sortedData, d => d.GOLD + d.SILVER + d.BRONZE);
+    const tempSvg = d3.select("body").append("svg").attr("class", "temp");
+    const tempText = tempSvg.append("text")
+        .attr("font-size", "12px")
+        .text(d3.format("d")(maxYValue));
+    const yAxisLabelWidth = tempText.node().getBBox().width;
+    tempSvg.remove();
+
+    const margin = { top: 20, right: 20, bottom: 50, left: yAxisLabelWidth + 20 }; // Add padding for Y-axis labels
+    const containerWidth = Math.max(600, sortedData.length * 40); // Adjust width dynamically
+    const height = 400 - margin.top - margin.bottom;
+
+    const svg = container.append('svg')
+        .attr('width', containerWidth + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    const x = d3.scaleBand().range([0, containerWidth]).padding(0.1);
+    const y = d3.scaleLinear().range([height, 0]);
+
+    const color = d3.scaleOrdinal()
+        .domain(['GOLD', 'SILVER', 'BRONZE'])
+        .range(['#FFD700', '#C0C0C0', '#CD7F32']);
+
+    x.domain(sortedData.map(d => d.country));
+    y.domain([0, maxYValue]);
+
+    const stack = d3.stack().keys(['GOLD', 'SILVER', 'BRONZE']);
+    const stackedData = stack(sortedData);
+
+    const tooltip = d3.select("body").append("div").attr("class", "tooltip");
+
+    svg.selectAll("g")
+        .data(stackedData)
+        .enter().append("g")
+        .attr("fill", d => color(d.key))
+        .selectAll("rect")
+        .data(d => d)
+        .enter().append("rect")
+        .attr("x", d => x(d.data.country))
+        .attr("y", d => y(d[1]))
+        .attr("height", d => y(d[0]) - y(d[1]))
+        .attr("width", x.bandwidth())
+        .on("mouseover", function (event, d) {
+            tooltip.style("opacity", 1)
+                .style("display", "block")
+                .html(`
+                    Country: ${d.data.country}<br>
+                    Gold: ${d.data.GOLD}<br>
+                    Silver: ${d.data.SILVER}<br>
+                    Bronze: ${d.data.BRONZE}`)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mousemove", function (event) {
+            tooltip.style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function () {
+            tooltip.style("opacity", 0)
+                .style("display", "none");
+        });
+
+    svg.append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(x))
+        .selectAll('text')
+        .attr('transform', 'rotate(-45)')
+        .style('text-anchor', 'end');
+
+    const yTicks = Math.min(10, y.domain()[1]); // Maximum of 10 ticks or less based on the data
+    svg.append('g')
+        .call(d3.axisLeft(y).ticks(yTicks).tickFormat(d3.format("d")));
+}
+
+
+    d3.select('#addFilterGroupBtn').on('click', addFilterGroup);
+    d3.select('#removeFilterGroupBtn').on('click', removeFilterGroup);
+    d3.select('#barGraphBtn').on('click', () => createGraphs(createBarGraph));
+    d3.select('#stackedBarGraphBtn').on('click', () => createGraphs(createStackedBarGraph));
+    d3.select('#resetBtn').on('click', resetVisualization);
+    </script>
+</body>
+</html>
+
+

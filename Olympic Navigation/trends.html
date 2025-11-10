@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Line Graph</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            background: url('theme.webp') no-repeat center center fixed;
+            background-size: cover;
+            background-color: #fdf6e3;
+        }
+
+        h1 {
+            margin: 20px 0;
+            font-family: Arial, sans-serif;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            text-align: center;
+        }
+
+        #filter-container {
+    width: 90%; /* Increase the width of the container */
+    max-width: 1200px; /* Set a maximum width for better responsiveness */
+    padding: 20px; /* Add padding around the container */
+    background-color: rgba(255, 255, 255, 0.8); /* Slightly transparent white background */
+    border-radius: 8px; /* Add rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add a subtle shadow */
+    margin-bottom: 20px; /* Space below the container */
+    display: flex;
+    justify-content: space-between; /* Distribute the filter boxes evenly */
+    flex-wrap: wrap; /* Allow filters to wrap on smaller screens */
+}
+
+.filter-group select {
+    width: 200px; /* Increase the width of each filter box */
+    height: 40px; /* Increase the height for better usability */
+    font-size: 16px; /* Larger font size for readability */
+    margin: 10px; /* Add spacing between the filter boxes */
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #444;
+    background-color: #ffffff;
+    color: #000000;
+}
+
+
+        
+
+        button {
+            margin: 10px;
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 50px;
+            background: white;
+            color: #1e90ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        button:hover {
+            color: white;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(120deg, #ff4500, #1e90ff, #32cd32, #ffa500);
+            z-index: -1;
+            transition: all 0.5s ease;
+        }
+
+        button:hover::before {
+            left: 0;
+        }
+
+        #chart {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border: 2px solid #444;
+            max-width: 100%;
+            overflow-x: auto;
+            display: none;
+        }
+
+       
+    </style>
+</head>
+<body>
+    <h1>Olympic Trends Visualization</h1>
+    <div id="filter-container">
+        <div class="filter-group">
+            <select class="discipline"></select>
+            <select class="event"></select>
+            <select class="eventGender"></select>
+            <select class="medalType"></select>
+            <select class="participantType"></select>
+            <select class="country"></select>
+            <select class="startYear"></select>
+            <select class="endYear"></select>
+        </div>
+    </div>
+    <button id="lineGraphBtn">Line Graph</button>
+    <button id="resetBtn">Reset</button>
+
+    <button class="home-button" onclick="location.href='index.html'">Home</button>
+    
+    <div id="chart"></div>
+    <script>
+    let data;
+
+    d3.csv('olympics_data_with_country_names.csv').then(function(csvData) {
+        data = csvData;
+        initializeFilters();
+    });
+
+    function initializeFilters() {
+    d3.select("#filter-container").html(""); // Clear filters
+    d3.select("#chart").html(""); // Clear any existing graphs
+    const container = d3.select("#filter-container");
+    const filters = {
+        discipline: container.append("select").attr("class", "discipline"),
+        event: container.append("select").attr("class", "event"),
+        eventGender: container.append("select").attr("class", "eventGender"),
+        medalType: container.append("select").attr("class", "medalType"),
+        participantType: container.append("select").attr("class", "participantType"),
+        country: container.append("select").attr("class", "country"),
+        startYear: container.append("select").attr("class", "startYear"),
+        endYear: container.append("select").attr("class", "endYear")
+    };
+
+    populateDropdowns(filters);
+    attachFilterChangeListeners(filters);
+}
+
+function attachFilterChangeListeners(filters) {
+    // Attach listeners to each filter
+    Object.values(filters).forEach(filter => {
+        filter.on("change", () => updateFilters(filters));
+    });
+}
+
+
+    function populateDropdowns(filters) {
+    Object.keys(filters).forEach(key => {
+        const columnName = {
+            discipline: "Discipline",
+            event: "Event",
+            eventGender: "Event Gender",
+            medalType: "Medal Type",
+            participantType: "Participant Type",
+            country: "Country",
+            startYear: "Start Year",
+            endYear: "End Year"
+        }[key];
+
+        const values = [...new Set(data.map(row => {
+            switch (key) {
+                case 'discipline': return row.discipline_title;
+                case 'event': return row.event_title;
+                case 'eventGender': return row.event_gender;
+                case 'medalType': return row.medal_type;
+                case 'participantType': return row.participant_type;
+                case 'country': return row.map_country_name;
+                case 'startYear':
+                case 'endYear': return row.year;
+                default: return '';
+            }
+        }))].sort();
+
+        filters[key]
+            .selectAll("option")
+            .data([columnName, ...values])
+            .join("option")
+            .text(option => option)
+            .attr("value", option => option === columnName ? "" : option);
+    });
+}
+
+
+    function updateFilters(filters) {
+        const filteredData = filterData(filters);
+        Object.keys(filters).forEach(key => {
+            const values = [...new Set(filteredData.map(row => {
+                switch (key) {
+                    case 'discipline': return row.discipline_title;
+                    case 'event': return row.event_title;
+                    case 'eventGender': return row.event_gender;
+                    case 'medalType': return row.medal_type;
+                    case 'participantType': return row.participant_type;
+                    case 'country': return row.map_country_name;
+                    case 'startYear':
+                    case 'endYear': return row.year;
+                    default: return '';
+                }
+            }))].sort();
+
+            const currentValue = filters[key].property("value");
+            filters[key]
+                .selectAll("option")
+                .data(["All", ...values])
+                .join("option")
+                .text(option => option)
+                .attr("value", option => option === "All" ? "" : option)
+                .property("selected", option => option === currentValue || (option === "All" && currentValue === ""));
+        });
+    }
+
+    function filterData(filters) {
+        return data.filter(d =>
+            (filters.discipline.property("value") === "" || d.discipline_title === filters.discipline.property("value")) &&
+            (filters.event.property("value") === "" || d.event_title === filters.event.property("value")) &&
+            (filters.eventGender.property("value") === "" || d.event_gender === filters.eventGender.property("value")) &&
+            (filters.medalType.property("value") === "" || d.medal_type === filters.medalType.property("value")) &&
+            (filters.participantType.property("value") === "" || d.participant_type === filters.participantType.property("value")) &&
+            (filters.country.property("value") === "" || d.map_country_name === filters.country.property("value")) &&
+            (filters.startYear.property("value") === "" || parseInt(d.year) >= parseInt(filters.startYear.property("value"))) &&
+            (filters.endYear.property("value") === "" || parseInt(d.year) <= parseInt(filters.endYear.property("value")))
+        );
+    }
+    function createLineGraph(filteredData) {
+    d3.select('#chart').selectAll('*').remove();
+    
+    if (filteredData.length === 0) {
+        d3.select('#chart').style('display', 'none'); // Hide the chart if no data
+        return;
+    }
+
+    d3.select('#chart').style('display', 'block'); // Show the chart when data is present
+
+    // Group data by year and summarize for the tooltip
+    const groupedData = d3.rollups(
+        filteredData,
+        v => ({
+            count: v.length,
+            details: d3.rollups(
+                v,
+                g => ({
+                    medals: g.length, // Count the medals for this combination
+                    event: g[0].event_title,
+                    discipline: g[0].discipline_title,
+                    country: g[0].map_country_name
+                }),
+                d => `${d.map_country_name}_${d.event_title}_${d.discipline_title}`
+            ).map(([key, value]) => ({
+                country: value.country,
+                event: value.event,
+                discipline: value.discipline,
+                medals: value.medals
+            }))
+        }),
+        d => d.year
+    ).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+
+    const margin = { top: 20, right: 20, bottom: 50, left: 50 };
+    const width = 800 - margin.left - margin.right;
+    const height = 400 - margin.top - margin.bottom;
+
+    const svg = d3.select('#chart')
+        .append('svg')
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    const x = d3.scaleBand()
+        .domain(groupedData.map(d => d[0]))
+        .range([0, width])
+        .padding(0.1);
+
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(groupedData, d => d[1].count)])
+        .range([height, 0]);
+
+    const line = d3.line()
+        .x(d => x(d[0]) + x.bandwidth() / 2)
+        .y(d => y(d[1].count));
+
+    svg.append('path')
+        .datum(groupedData)
+        .attr('fill', 'none')
+        .attr('stroke', 'steelblue')
+        .attr('stroke-width', 2)
+        .attr('d', line);
+
+    svg.selectAll('.circle')
+        .data(groupedData)
+        .enter().append('circle')
+        .attr('cx', d => x(d[0]) + x.bandwidth() / 2)
+        .attr('cy', d => y(d[1].count))
+        .attr('r', 4)
+        .attr('fill', 'steelblue')
+        .attr('class', 'data-point');
+
+    // Ensure the tooltip exists in the DOM
+    let tooltip = d3.select('.tooltip');
+    if (tooltip.empty()) {
+        tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("position", "absolute")
+            .style("background-color", "white")
+            .style("border", "1px solid #ccc")
+            .style("padding", "10px")
+            .style("border-radius", "5px")
+            .style("font-size", "12px")
+            .style("pointer-events", "auto")
+            .style("max-height", "150px")
+            .style("overflow-y", "auto")
+            .style("box-shadow", "0px 4px 10px rgba(0, 0, 0, 0.2)")
+            .style("opacity", 0)
+            .style("z-index", 10);
+    }
+
+    let tooltipVisible = false;
+
+    svg.on("click", function () {
+        d3.select(".tooltip")
+            .style("opacity", 0) // Hide tooltip
+            .style("display", "none"); // Ensure it's removed from view
+        tooltipVisible = false; // Update flag
+    });
+
+    svg.selectAll('.data-point')
+        .on("click", function (event, d) {
+            const currentFill = d3.select(this).attr("fill");
+            const newFill = currentFill === 'steelblue' ? 'orange' : 'steelblue'; // Toggle between colors
+            d3.select(this).attr("fill", newFill); // Change the color
+
+            if (tooltipVisible) {
+                d3.select(".tooltip")
+                    .style("opacity", 0)
+                    .style("display", "none");
+                tooltipVisible = false; // Hide tooltip
+            } else {
+                d3.select(".tooltip")
+                    .style("opacity", 1)
+                    .style("display", "block")
+                    .html(`
+                        <strong>Year:</strong> ${d[0]}<br>
+                        <strong>Count:</strong> ${d[1].count}<br>
+                        <hr>
+                        <strong>Details:</strong><br>
+                        ${d[1].details.map(detail => `
+                            <strong>Country:</strong> ${detail.country}<br>
+                            <strong>Event:</strong> ${detail.event}<br>
+                            <strong>Discipline:</strong> ${detail.discipline}<br>
+                            <strong>Medals:</strong> ${detail.medals}
+                        `).join('<br><br>')}
+                    `)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+                tooltipVisible = true; // Show tooltip
+            }
+
+            event.stopPropagation(); // Prevent event propagation to SVG
+        });
+
+
+
+
+        // Hide tooltip when clicking on reset
+        d3.select('#resetBtn').on('click', () => {
+    // Reset filter boxes to default
+    const filters = {
+        discipline: d3.select(".discipline"),
+        event: d3.select(".event"),
+        eventGender: d3.select(".eventGender"),
+        medalType: d3.select(".medalType"),
+        participantType: d3.select(".participantType"),
+        country: d3.select(".country"),
+        startYear: d3.select(".startYear"),
+        endYear: d3.select(".endYear")
+    };
+
+    Object.values(filters).forEach(filter => {
+        filter.property("value", ""); // Reset each filter to default
+    });
+
+    // Clear and hide the chart
+    d3.select('#chart').style('display', 'none').selectAll('*').remove();
+    // Repopulate dropdowns with the full dataset
+    populateDropdowns(filters);
+});
+
+
+        svg.append('g')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(x))
+            .selectAll('text')
+            .attr('transform', 'rotate(-45)')
+            .style('text-anchor', 'end');
+
+        const yTicks = Math.min(10, y.domain()[1]); // Maximum of 10 ticks or less based on the data
+        svg.append('g')
+            .call(d3.axisLeft(y).ticks(yTicks).tickFormat(d3.format("d")));
+
+    }
+
+    
+    d3.select('#lineGraphBtn').on('click', () => {
+        const filters = {
+            discipline: d3.select(".discipline"),
+            event: d3.select(".event"),
+            eventGender: d3.select(".eventGender"),
+            medalType: d3.select(".medalType"),
+            participantType: d3.select(".participantType"),
+            country: d3.select(".country"),
+            startYear: d3.select(".startYear"),
+            endYear: d3.select(".endYear")
+        };
+        const filteredData = filterData(filters);
+        createLineGraph(filteredData);
+    });
+</script>
+</body>
+</html>
+

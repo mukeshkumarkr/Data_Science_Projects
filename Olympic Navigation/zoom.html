@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zoomable Circle Packing</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #fdf6e3;
+      background: url('theme.webp') no-repeat center center fixed;
+
+    }
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        }
+
+    h1 {
+        text-align: center;
+        margin: 20px 0;
+        font-family: Arial, sans-serif;
+        color: white;
+        }
+
+    #svgContainer {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        background: #fdf6e3;
+        }
+
+
+    .tooltip {
+      position: absolute;
+      text-align: center;
+      width: auto;
+      padding: 8px;
+      font: 12px sans-serif;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: 0px;
+      border-radius: 4px;
+      pointer-events: none;
+      visibility: hidden;
+    }
+
+    button {
+            margin: 10px;
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 50px;
+            background: white;
+            color: #1e90ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        button:hover {
+            color: white;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(120deg, #ff4500, #1e90ff, #32cd32, #ffa500);
+            z-index: -1;
+            transition: all 0.5s ease;
+        }
+
+        button:hover::before {
+            left: 0;
+        }
+        .home-button {
+            position: absolute;
+            top: 80px; /* Adjust this to place it below Reset Zoom */
+            left: 50px;
+            z-index: 10;
+            margin: 0; /* Ensure no extra spacing affects placement */
+        }
+        /* Animations */
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+    select {
+      font-size: 14px;
+      padding: 10px;
+      cursor: pointer;
+      border: 1px solid #007BFF;
+      border-radius: 5px;
+      background-color: white;
+    }
+    
+  </style>
+</head>
+<body>
+  <h1>Zoomable Circle Packing</h1>
+  <button id="resetZoom" style="position: absolute; top: 10px; left: 10px; z-index: 10;">Reset to Root</button>
+  <button class="home-button" onclick="location.href='index.html'">Home</button>
+
+  <select id="nodeDropdown" style="position: absolute; top: 150px; left: 10px; z-index: 10;">
+    <option value="">Select a Node</option>
+  </select>
+  <div class="tooltip"></div>
+  
+  <script>
+    const width = 928;
+    const height = width;
+
+    const color = d3.scaleLinear()
+        .domain([0, 5])
+        .range(["hsl(152,80%,80%)", "hsl(228,30%,40%)"])
+        .interpolate(d3.interpolateHcl);
+
+    d3.csv("olympics_data_with_country_names.csv").then(data => {
+      // Data cleaning and handling missing values
+      data.forEach(d => {
+        d.year = d.year || "Unknown Year";
+        d.medal_type = d.medal_type || "No Medal";
+        d.map_country_name = d.map_country_name || "Unknown Country";
+        d.discipline_title = d.discipline_title || "Unknown Discipline";
+      });
+
+      const nestedData = {
+        name: "Root",
+        children: Array.from(
+            d3.group(data, d => d.map_country_name),
+            ([country, values]) => ({
+                name: country,
+                children: Array.from(
+                    d3.group(values, d => d.discipline_title),
+                    ([discipline, years]) => ({
+                        name: discipline,
+                        children: Array.from(
+                            d3.group(years, d => d.year),
+                            ([year, yearData]) => {
+                                const goldMedals = yearData.filter(d => d.medal_type === "GOLD").length || 0;
+                                const silverMedals = yearData.filter(d => d.medal_type === "SILVER").length || 0;
+                                const bronzeMedals = yearData.filter(d => d.medal_type === "BRONZE").length || 0;
+
+                                if (goldMedals > 0 || silverMedals > 0 || bronzeMedals > 0) {
+                                    return {
+                                        name: year || "Unknown Year",
+                                        children: [
+                                            ...(goldMedals > 0 ? [{ name: "Gold", value: goldMedals }] : []),
+                                            ...(silverMedals > 0 ? [{ name: "Silver", value: silverMedals }] : []),
+                                            ...(bronzeMedals > 0 ? [{ name: "Bronze", value: bronzeMedals }] : [])
+                                        ]
+                                    };
+                                }
+                                return null;
+                            }
+                        ).filter(Boolean)
+                    })
+                )
+            })
+        )
+      };
+
+      const pack = data => d3.pack()
+          .size([width, height])
+          .padding(3)
+        (d3.hierarchy(data)
+          .sum(d => d.value || 0)
+          .sort((a, b) => b.value - a.value));
+      const root = pack(nestedData);
+
+      const svg = d3.select("body")
+        .append("svg")
+        .attr("viewBox", `-${width / 2} -${height / 2} ${width} ${height}`)
+        .attr("width", width)
+        .attr("height", height)
+        .attr("style", `
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            background: ${color(0)};
+            cursor: pointer;
+            border: 2px solid #444;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        `);
+
+      const tooltip = d3.select(".tooltip");
+
+      const node = svg.append("g")
+    .selectAll("circle")
+    .data(root.descendants().slice(1))
+    .join("circle")
+    .attr("fill", d => {
+        if (!d.children) {
+            // Assign specific colors for medal types
+            if (d.data.name === "Gold") return "gold";
+            if (d.data.name === "Silver") return "silver";
+            if (d.data.name === "Bronze") return "#cd7f32"; // Bronze color
+            return "white"; // Default color for other leaf nodes
+        }
+        return color(d.depth); // Color for non-leaf nodes
+    })
+    .attr("pointer-events", d => (!d.children ? "none" : null))
+    .on("mouseover", function(event, d) {
+        if (d.value) {
+            d3.select(this).attr("stroke", "#000");
+            tooltip.style("visibility", "visible")
+                .text(`${d.data.name}: ${d.value}`);
+        }
+    })
+    .on("mousemove", function(event) {
+        tooltip.style("top", `${event.pageY + 5}px`).style("left", `${event.pageX + 5}px`);
+    })
+    .on("mouseout", function() {
+        d3.select(this).attr("stroke", null);
+        tooltip.style("visibility", "hidden");
+    })
+    .on("click", function(event, d) {
+        if (d.children) {
+            zoom(event, d);
+        }
+    });
+
+
+    const label = svg.append("g")
+    .attr("pointer-events", "none")
+    .attr("text-anchor", "middle")
+  .selectAll("text")
+  .data(root.descendants())
+  .join("text")
+    .style("font-size", d => {
+        if (d.depth === 1) return `${Math.max(12, d.r / 4)}px`; // Larger font for discipline nodes
+        if (d.depth === 2) return `${Math.max(10, d.r / 5)}px`; // Medium font for year nodes
+        return `${Math.max(8, d.r / 6)}px`; // Smaller font for medal nodes
+    })
+    .style("font-family", "sans-serif")
+    .style("fill-opacity", d => (d.parent === root ? 1 : 0))
+    .style("display", d => (d.parent === root ? "inline" : "none"))
+    .text(d => {
+        if (!d.children && (d.data.name === "Gold" || d.data.name === "Silver" || d.data.name === "Bronze")) {
+            return `${d.data.name}:${d.value || 0}`;
+        }
+        return d.data.name;
+    });
+
+
+
+
+
+      let focus = root;
+      let view;
+
+      zoomTo([focus.x, focus.y, focus.r * 2]);
+
+    function zoomTo(v) {
+    const k = width / v[2];
+    view = v;
+
+    label.attr("transform", d => `translate(${(d.x - v[0]) * k},${(d.y - v[1]) * k})`)
+        .style("font-size", d => {
+            if (d.depth === 1) return `${Math.max(14, (d.r * k) / 4)}px`; // Discipline nodes
+            if (d.depth === 2) return `${Math.max(12, (d.r * k) / 5)}px`; // Year nodes
+            return `${Math.max(10, (d.r * k) / 6)}px`; // Medal nodes
+        });
+
+    node.attr("transform", d => `translate(${(d.x - v[0]) * k},${(d.y - v[1]) * k})`)
+        .attr("r", d => d.r * k);
+}
+
+
+
+
+      function zoom(event, d) {
+        focus = d;
+
+        const transition = svg.transition()
+            .duration(750)
+            .tween("zoom", () => {
+              const i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2]);
+              return t => zoomTo(i(t));
+            });
+
+        label
+          .filter(function(d) { return d.parent === focus || this.style.display === "inline"; })
+          .transition(transition)
+            .style("fill-opacity", d => d.parent === focus ? 1 : 0)
+            .on("start", function(d) { if (d.parent === focus) this.style.display = "inline"; })
+            .on("end", function(d) { if (d.parent !== focus) this.style.display = "none"; });
+
+        updateDropdown(d);
+      }
+
+      document.getElementById("resetZoom").addEventListener("click", () => {
+        focus = root; // Reset focus to root
+        const transition = svg.transition()
+            .duration(750)
+            .tween("zoom", () => {
+              const i = d3.interpolateZoom(view, [root.x, root.y, root.r * 2]);
+              return t => zoomTo(i(t));
+            });
+
+        label
+          .filter(function(d) { return d.parent === root || this.style.display === "inline"; })
+          .transition(transition)
+            .style("fill-opacity", d => d.parent === root ? 1 : 0)
+            .on("start", function(d) { if (d.parent === root) this.style.display = "inline"; })
+            .on("end", function(d) { if (d.parent !== root) this.style.display = "none"; });
+
+        // Clear dropdown and highlights
+        updateDropdown(root); // Update dropdown to root level
+        node.attr("stroke", null); // Remove all highlights
+      });
+
+      const dropdown = document.getElementById("nodeDropdown");
+
+      function updateDropdown(focusNode) {
+        dropdown.innerHTML = `<option value="">Select a Node</option>`;
+        if (focusNode.children) {
+          focusNode.children.forEach(child => {
+            const option = document.createElement("option");
+            option.value = child.data.name;
+            option.textContent = child.data.name;
+            dropdown.appendChild(option);
+          });
+        }
+      }
+
+      dropdown.addEventListener("change", event => {
+  const selectedNodeName = event.target.value;
+  if (selectedNodeName) {
+    const selectedNode = focus.children.find(child => child.data.name === selectedNodeName);
+    if (selectedNode) {
+      node.attr("stroke", null) // Clear previous highlights
+          .attr("stroke-width", 1); // Reset stroke width for all nodes
+      d3.select(node.filter(d => d === selectedNode).node())
+        .attr("stroke", "red")
+        .attr("stroke-width", 5); // Increase stroke width for the highlighted node
+    }
+  }
+});
+
+
+      updateDropdown(root); // Initialize dropdown
+    }).catch(error => console.error("Error loading or processing data:", error));
+  </script>
+</body>
+</html>
+
